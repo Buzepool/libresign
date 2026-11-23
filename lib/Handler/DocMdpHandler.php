@@ -250,6 +250,16 @@ class DocMdpHandler {
 		rewind($pdfResource);
 		$content = stream_get_contents($pdfResource);
 		$fileSize = strlen($content);
+		// Ignore unreferenced signature dictionaries when reporting document revisions.
+		// The structural inventory is authoritative when the PDF can be parsed.
+		$inventory = (new PdfSignatureInventoryReader())->readFromString($content);
+		if ($inventory->isConclusive && $inventory->activeSignatureCount === 0) {
+			return [
+				'modified' => false,
+				'revisionCount' => 0,
+				'details' => [],
+			];
+		}
 
 		preg_match_all(
 			'/ByteRange\s*\[\s*(?<offset1>\d+)\s+(?<length1>\d+)\s+(?<offset2>\d+)\s+(?<length2>\d+)\s*\]/',
